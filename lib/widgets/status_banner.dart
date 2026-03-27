@@ -125,12 +125,16 @@ class _StatusBannerState extends State<StatusBanner>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              widget.status.toUpperCase(),
-                              style: AppStyles.titleStyle.copyWith(
-                                color: statusColor,
-                                fontSize: 22,
-                                letterSpacing: 0.5,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                widget.status.toUpperCase(),
+                                style: AppStyles.titleStyle.copyWith(
+                                  color: statusColor,
+                                  fontSize: 22,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
                           ],

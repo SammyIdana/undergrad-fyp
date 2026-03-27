@@ -127,7 +127,7 @@ class DashboardScreen extends ConsumerWidget {
                   mainAxisSpacing: 16,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.0,
+                  childAspectRatio: MediaQuery.of(context).size.width > 360 ? 1.0 : 0.85,
                   children: [
                     ParameterCard(
                       title: 'pH',

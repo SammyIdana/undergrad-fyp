@@ -84,7 +84,7 @@ class _ParameterCardState extends State<ParameterCard>
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -115,21 +115,23 @@ class _ParameterCardState extends State<ParameterCard>
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text(
-                      widget.value,
-                      style: AppStyles.valueStyle.copyWith(
-                        fontSize: 32,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          widget.value,
+                          style: AppStyles.valueStyle.copyWith(
+                            fontSize: 32,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        widget.unit,
-                        style: AppStyles.labelStyle.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.unit,
+                      style: AppStyles.labelStyle.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
