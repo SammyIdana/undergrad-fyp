@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
+import 'theme.dart';
 
 class AppHelpers {
   static Color getStatusColor(String status) {
@@ -60,5 +61,46 @@ class AppHelpers {
       default:
         return Icons.help_outline_rounded;
     }
+  }
+
+  // Dark mode aware helper methods
+  static bool isDarkMode(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  static Color getStatusColorForTheme(String status, BuildContext context) {
+    if (isDarkMode(context)) {
+      switch (status.toUpperCase()) {
+        case 'SAFE':
+          return AppColorsDark.safe;
+        case 'CAUTION':
+          return AppColorsDark.caution;
+        case 'LIMITED USE':
+          return AppColorsDark.limitedUse;
+        case 'DANGEROUS':
+          return AppColorsDark.dangerous;
+        default:
+          return AppColorsDark.textSecondary;
+      }
+    }
+    return getStatusColor(status);
+  }
+
+  static Color getStatusColorLightForTheme(String status, BuildContext context) {
+    if (isDarkMode(context)) {
+      switch (status.toUpperCase()) {
+        case 'SAFE':
+          return AppColorsDark.safeLight;
+        case 'CAUTION':
+          return AppColorsDark.cautionLight;
+        case 'LIMITED USE':
+          return AppColorsDark.limitedUseLight;
+        case 'DANGEROUS':
+          return AppColorsDark.dangerousLight;
+        default:
+          return AppColorsDark.textSecondary;
+      }
+    }
+    return getStatusColorLight(status);
   }
 }

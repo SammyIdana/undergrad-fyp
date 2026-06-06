@@ -4,6 +4,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../providers/history_provider.dart';
 import '../models/water_data.dart';
 import '../utils/constants.dart';
+import '../utils/water_data_stats.dart';
+import '../utils/responsive.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -13,7 +15,7 @@ class HistoryScreen extends ConsumerWidget {
     final history = ref.watch(historyProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Column(
           children: [
@@ -34,12 +36,12 @@ class HistoryScreen extends ConsumerWidget {
         leading: Container(
           margin: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -55,19 +57,19 @@ class HistoryScreen extends ConsumerWidget {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.history_rounded,
                       color: AppColors.primary,
                       size: 48,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'No Data Yet',
                     style: AppStyles.headingStyle,
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Historical data will appear as readings are collected',
                     textAlign: TextAlign.center,
                     style: AppStyles.labelStyle,
@@ -77,9 +79,17 @@ class HistoryScreen extends ConsumerWidget {
             )
           : ListView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(
+                ResponsiveUtils.getHorizontalPadding(context),
+              ),
               children: [
+                // Statistics section
+                _buildStatisticsSection(context, history),
+                const SizedBox(height: 28),
+                
+                // 🔄 Added 'context' as the first argument in all method calls below:
                 _buildChartCard(
+                  context,
                   'pH Level',
                   history,
                   (d) => d.ph,
@@ -88,6 +98,7 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildChartCard(
+                  context,
                   'TDS (ppm)',
                   history,
                   (d) => d.tds,
@@ -96,6 +107,7 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildChartCard(
+                  context,
                   'Turbidity (NTU)',
                   history,
                   (d) => d.turbidity,
@@ -104,6 +116,7 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildChartCard(
+                  context,
                   'Temperature (°C)',
                   history,
                   (d) => d.temperature,
@@ -117,6 +130,7 @@ class HistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildChartCard(
+    BuildContext context, // 👈 Added BuildContext here to bring context into scope
     String title,
     List<WaterData> data,
     double Function(WaterData) selector,
@@ -131,7 +145,7 @@ class HistoryScreen extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
@@ -191,7 +205,7 @@ class HistoryScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             SizedBox(
-              height: 220,
+              height: ResponsiveUtils.getChartHeight(context), // 😎 Context is now perfectly resolved!
               child: LineChart(
                 LineChartData(
                   gridData: const FlGridData(
@@ -258,6 +272,119 @@ class HistoryScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatisticsSection(BuildContext context, List<WaterData> history) {
+    final stats = WaterDataStats.fromList(history);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Statistics',
+          style: AppStyles.titleStyle.copyWith(fontSize: 22),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            _buildStatCard(context, 'pH Level', stats.minPh, stats.avgPh,
+                stats.maxPh, Icons.science_rounded),
+            _buildStatCard(context, 'TDS (ppm)', stats.minTds, stats.avgTds,
+                stats.maxTds, Icons.water_drop_rounded),
+            _buildStatCard(context, 'Turbidity (NTU)', stats.minTurbidity,
+                stats.avgTurbidity, stats.maxTurbidity, Icons.blur_on_rounded),
+            _buildStatCard(
+                context,
+                'Temperature (°C)',
+                stats.minTemperature,
+                stats.avgTemperature,
+                stats.maxTemperature,
+                Icons.thermostat_rounded),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(BuildContext context, String label, double min,
+      double avg, double max, IconData icon) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context)
+              .colorScheme
+              .primary
+              .withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppStyles.labelStyle.copyWith(fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildStatRow('Min', min),
+          const SizedBox(height: 4),
+          _buildStatRow('Avg', avg),
+          const SizedBox(height: 4),
+          _buildStatRow('Max', max),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, double value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppStyles.labelStyle.copyWith(fontSize: 10),
+        ),
+        Text(
+          value.toStringAsFixed(2),
+          style: AppStyles.labelStyle.copyWith(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

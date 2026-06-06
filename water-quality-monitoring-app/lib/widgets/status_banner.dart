@@ -58,9 +58,10 @@ class _StatusBannerState extends State<StatusBanner>
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = AppHelpers.getStatusColor(widget.status);
-    final statusColorLight = AppHelpers.getStatusColorLight(widget.status);
+    final statusColor = AppHelpers.getStatusColorForTheme(widget.status, context);
+    final statusColorLight = AppHelpers.getStatusColorLightForTheme(widget.status, context);
     final recommendation = AppHelpers.getStatusRecommendation(widget.status);
+    final statusIcon = _getStatusIcon(widget.status);
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -100,17 +101,43 @@ class _StatusBannerState extends State<StatusBanner>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.water_drop_rounded,
-                          color: statusColor,
-                          size: 32,
-                        ),
+                      // Animated status indicator
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Pulsing background
+                          if (widget.status.toUpperCase() == 'DANGEROUS')
+                            ScaleTransition(
+                              scale: Tween<double>(begin: 1.0, end: 1.3)
+                                  .animate(
+                                CurvedAnimation(
+                                  parent: _controller,
+                                  curve: Curves.elasticOut,
+                                ),
+                              ),
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          // Icon container
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              statusIcon,
+                              color: statusColor,
+                              size: 32,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -121,7 +148,10 @@ class _StatusBannerState extends State<StatusBanner>
                               'Water Quality',
                               style: AppStyles.labelStyle.copyWith(
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -143,6 +173,8 @@ class _StatusBannerState extends State<StatusBanner>
                     ],
                   ),
                   const SizedBox(height: 16),
+                  
+                  // Recommendation
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -156,7 +188,10 @@ class _StatusBannerState extends State<StatusBanner>
                       recommendation,
                       textAlign: TextAlign.center,
                       style: AppStyles.subtitleStyle.copyWith(
-                        color: AppColors.textMain,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color,
                         fontSize: 15,
                         height: 1.5,
                       ),
@@ -169,5 +204,21 @@ class _StatusBannerState extends State<StatusBanner>
         ),
       ),
     );
+  }
+
+  // Helper method to get appropriate icon based on status
+  IconData _getStatusIcon(String status) {
+    switch (status.toUpperCase()) {
+      case 'SAFE':
+        return Icons.check_circle_rounded;
+      case 'CAUTION':
+        return Icons.warning_amber_rounded;
+      case 'LIMITED USE':
+        return Icons.error_outline_rounded;
+      case 'DANGEROUS':
+        return Icons.dangerous_rounded;
+      default:
+        return Icons.help_outline_rounded;
+    }
   }
 }
