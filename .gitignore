@@ -48,3 +48,29 @@ app.*.map.json
 /water-quality-monitoring-app/linux/
 /water-quality-monitoring-app/windows/
 /water-quality-monitoring-app/macos/
+
+# Flutter/Dart build directories
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# C/C++ & CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build.ninja
+
+# Android generated files
+.gradle/
+**/android/app/build/
+**/android/.gradle/
+local.properties
+
+# iOS generated files
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+
+# Miscellaneous generated artifacts
+*.filepart
+hash_key.txt
