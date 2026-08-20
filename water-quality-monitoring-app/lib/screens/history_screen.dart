@@ -208,7 +208,7 @@ class HistoryScreen extends ConsumerWidget {
                     drawVerticalLine: false,
                     horizontalInterval: null,
                   ),
-                  titlesData: const FlTitlesData(
+                  titlesData: FlTitlesData(
                     rightTitles:
                         AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     topTitles:
@@ -216,7 +216,7 @@ class HistoryScreen extends ConsumerWidget {
                     bottomTitles:
                         AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: const FlBorderData(show: false),
+                  borderData: FlBorderData(show: false),
                   lineBarsData: [
                     LineChartBarData(
                       spots: spots,
