@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Desktop platforms (mobile-only development)
+/water-quality-monitoring-app/linux/
+/water-quality-monitoring-app/windows/
+/water-quality-monitoring-app/macos/
