@@ -6,7 +6,7 @@ import '../providers/theme_provider.dart';
 import '../widgets/parameter_card.dart';
 import '../widgets/status_banner.dart';
 import '../utils/constants.dart';
-import '../utils/responsive.dart';
+import 'alert_history_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
 
@@ -68,24 +68,8 @@ class DashboardScreen extends ConsumerWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const SettingsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          ),
-                        ),
-                        child: child,
-                      );
-                    },
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
                   ),
                 );
               },
@@ -103,24 +87,27 @@ class DashboardScreen extends ConsumerWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const HistoryScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          ),
-                        ),
-                        child: child,
-                      );
-                    },
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_rounded),
+              color: Theme.of(context).colorScheme.primary,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AlertHistoryScreen(),
                   ),
                 );
               },
@@ -182,9 +169,7 @@ class DashboardScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: EdgeInsets.all(
-                ResponsiveUtils.getHorizontalPadding(context),
-              ),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -203,31 +188,35 @@ class DashboardScreen extends ConsumerWidget {
 
                   // Parameter Grid
                   GridView.count(
-                    crossAxisCount: ResponsiveUtils.getGridColumns(context),
-                    crossAxisSpacing: ResponsiveUtils.getGridSpacing(context),
-                    mainAxisSpacing: ResponsiveUtils.getGridSpacing(context),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.0,
+                    childAspectRatio: MediaQuery.of(context).size.width > 360 ? 1.0 : 0.85,
                     children: [
                       ParameterCard(
                         title: 'pH',
                         value: data.ph.toStringAsFixed(1),
+                        numericValue: data.ph,
                         unit: '',
                       ),
                       ParameterCard(
                         title: 'TDS',
                         value: data.tds.toStringAsFixed(0),
+                        numericValue: data.tds,
                         unit: 'ppm',
                       ),
                       ParameterCard(
                         title: 'Turbidity',
                         value: data.turbidity.toStringAsFixed(1),
+                        numericValue: data.turbidity,
                         unit: 'NTU',
                       ),
                       ParameterCard(
                         title: 'Temperature',
                         value: data.temperature.toStringAsFixed(1),
+                        numericValue: data.temperature,
                         unit: '°C',
                       ),
                     ],

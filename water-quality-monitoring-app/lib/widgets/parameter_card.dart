@@ -2,143 +2,135 @@ import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import '../utils/helper_functions.dart';
 
-class ParameterCard extends StatefulWidget {
+class ParameterCard extends StatelessWidget {
   final String title;
   final String value;
   final String unit;
+  final double numericValue;
 
   const ParameterCard({
     super.key,
     required this.title,
     required this.value,
     required this.unit,
+    required this.numericValue,
   });
 
   @override
-  State<ParameterCard> createState() => _ParameterCardState();
-}
-
-class _ParameterCardState extends State<ParameterCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scaleAnimation,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.card,
-                AppColors.surfaceOverlay,
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: AppColors.textMain.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              width: 1,
-            ),
+    final isDark = AppHelpers.isDarkMode(context);
+    final paramStatus = AppHelpers.getParameterStatus(title, numericValue);
+    final statusColor = AppHelpers.getStatusColorForTheme(paramStatus, context);
+    final paramColor = AppHelpers.getParameterColor(title);
+
+    final cardBg = isDark ? AppColorsDark.card : AppColors.card;
+    final overlay = isDark ? AppColorsDark.surfaceOverlay : AppColors.surfaceOverlay;
+    final textMain = isDark ? AppColorsDark.textMain : AppColors.textMain;
+    final textSub = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [cardBg, Color.lerp(cardBg, overlay, 0.7)!],
+        ),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.38),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withValues(alpha: isDark ? 0.22 : 0.14),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Header with icon and title
                 Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   padding: const EdgeInsets.all(10),
-                  child: Icon(
-                    AppHelpers.getParameterIcon(widget.title),
-                    color: AppColors.primary,
-                    size: 24,
+                  decoration: BoxDecoration(
+                    color: paramColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  child: Icon(AppHelpers.getParameterIcon(title), color: paramColor, size: 22),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.title,
-                  style: AppStyles.labelStyle.copyWith(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: statusColor.withValues(alpha: 0.95),
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
-                ),
-                const Spacer(),
-                // Value display with smooth animation
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          widget.value,
-                          style: AppStyles.valueStyle.copyWith(
-                            fontSize: 32,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.unit,
-                      style: AppStyles.labelStyle.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 12),
+            Text(
+              title.toUpperCase(),
+              style: AppStyles.paramLabelStyle.copyWith(color: textSub),
+            ),
+            const Spacer(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: Text(
+                    value,
+                    style: AppStyles.metricValueStyle.copyWith(color: textMain),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (unit.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    unit,
+                    style: AppStyles.paramLabelStyle.copyWith(fontSize: 12, color: textSub),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                paramStatus,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: statusColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

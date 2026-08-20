@@ -1,21 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/firebase_service.dart';
+import 'services/notification_manager.dart';
 import 'screens/dashboard_screen.dart';
 import 'utils/theme.dart';
 import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase and FCM
+
   await FirebaseService().initialize();
-  
+
   runApp(
     const ProviderScope(
       child: WaterMonitoringApp(),
     ),
   );
+
+  // Initialize notification registration and handlers after the UI is available.
+  unawaited(NotificationManager.instance.initialize());
 }
 
 class WaterMonitoringApp extends ConsumerWidget {

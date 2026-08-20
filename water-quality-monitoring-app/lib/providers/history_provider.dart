@@ -3,11 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/water_data.dart';
-import '../services/local_storage_service.dart';
 import 'water_data_provider.dart';
 
 const String historyApiEndpoint = 'https://water-quality-monitor-api.onrender.com/api/telemetry/history/ESP32_221A74';
-final _localStorageService = LocalStorageService();
 
 class HistoryNotifier extends Notifier<List<WaterData>> {
   @override
@@ -25,8 +23,6 @@ class HistoryNotifier extends Notifier<List<WaterData>> {
           
           if (!containsTimestamp) {
             state = [...state, newEntry];
-            // Also cache the new entry
-            _localStorageService.cacheWaterData(newEntry);
           }
         }
       },
@@ -63,29 +59,13 @@ class HistoryNotifier extends Notifier<List<WaterData>> {
         fetchedHistory.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
         state = fetchedHistory;
-        // Cache the history for offline access
-        await _localStorageService.cacheHistoryData(fetchedHistory);
-        debugPrint('✅ Successfully loaded ${state.length} historical data points.');
+        debugPrint('Successfully loaded ${state.length} historical data points.');
       } else {
         debugPrint('History tracking error status code: ${response.statusCode}');
-        
-        // Try to load from cache on error
-        final cachedHistory = await _localStorageService.getCachedHistoryData();
-        if (cachedHistory.isNotEmpty) {
-          state = cachedHistory;
-          debugPrint('🔄 Loaded ${state.length} historical points from local cache');
-        }
       }
     } catch (e, stackTrace) {
       debugPrint('Error pulling database historical logs: $e');
       debugPrint('Stacktrace: $stackTrace');
-      
-      // Try to load from cache on error
-      final cachedHistory = await _localStorageService.getCachedHistoryData();
-      if (cachedHistory.isNotEmpty) {
-        state = cachedHistory;
-        debugPrint('🔄 Loaded ${state.length} historical points from local cache');
-      }
     }
   }
 }

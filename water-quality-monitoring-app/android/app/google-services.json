@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "650434704290",
+    "firebase_url": "https://water-quality-monitor-app-default-rtdb.firebaseio.com",
     "project_id": "water-quality-monitor-app",
     "storage_bucket": "water-quality-monitor-app.firebasestorage.app"
   },

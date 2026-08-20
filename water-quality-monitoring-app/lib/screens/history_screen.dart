@@ -5,7 +5,6 @@ import '../providers/history_provider.dart';
 import '../models/water_data.dart';
 import '../utils/constants.dart';
 import '../utils/water_data_stats.dart';
-import '../utils/responsive.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -57,19 +56,19 @@ class HistoryScreen extends ConsumerWidget {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.history_rounded,
                       color: AppColors.primary,
                       size: 48,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No Data Yet',
                     style: AppStyles.headingStyle,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Historical data will appear as readings are collected',
                     textAlign: TextAlign.center,
                     style: AppStyles.labelStyle,
@@ -79,17 +78,12 @@ class HistoryScreen extends ConsumerWidget {
             )
           : ListView(
               physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.all(
-                ResponsiveUtils.getHorizontalPadding(context),
-              ),
+              padding: const EdgeInsets.all(16),
               children: [
                 // Statistics section
                 _buildStatisticsSection(context, history),
                 const SizedBox(height: 28),
-                
-                // 🔄 Added 'context' as the first argument in all method calls below:
                 _buildChartCard(
-                  context,
                   'pH Level',
                   history,
                   (d) => d.ph,
@@ -98,7 +92,6 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildChartCard(
-                  context,
                   'TDS (ppm)',
                   history,
                   (d) => d.tds,
@@ -107,7 +100,6 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildChartCard(
-                  context,
                   'Turbidity (NTU)',
                   history,
                   (d) => d.turbidity,
@@ -116,7 +108,6 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildChartCard(
-                  context,
                   'Temperature (°C)',
                   history,
                   (d) => d.temperature,
@@ -130,22 +121,25 @@ class HistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildChartCard(
-    BuildContext context, // 👈 Added BuildContext here to bring context into scope
     String title,
     List<WaterData> data,
     double Function(WaterData) selector,
     Color color,
     String description,
   ) {
-    List<FlSpot> spots = [];
-    for (int i = 0; i < data.length; i++) {
-      spots.add(FlSpot(i.toDouble(), selector(data[i])));
-    }
+    final spots = List<FlSpot>.generate(
+      data.length,
+      (index) => FlSpot(index.toDouble(), selector(data[index])),
+    );
+    final showDots = data.length <= 10;
+    final average = data.isNotEmpty
+        ? data.fold(0.0, (sum, item) => sum + selector(item)) / data.length
+        : 0.0;
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
@@ -156,8 +150,8 @@ class HistoryScreen extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(
@@ -205,7 +199,7 @@ class HistoryScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             SizedBox(
-              height: ResponsiveUtils.getChartHeight(context), // 😎 Context is now perfectly resolved!
+              height: 220,
               child: LineChart(
                 LineChartData(
                   gridData: const FlGridData(
@@ -222,9 +216,7 @@ class HistoryScreen extends ConsumerWidget {
                     bottomTitles:
                         AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: FlBorderData(
-                    show: false,
-                  ),
+                  borderData: const FlBorderData(show: false),
                   lineBarsData: [
                     LineChartBarData(
                       spots: spots,
@@ -232,17 +224,7 @@ class HistoryScreen extends ConsumerWidget {
                       color: color,
                       barWidth: 3,
                       isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 4,
-                            color: color,
-                            strokeWidth: 2,
-                            strokeColor: Colors.white,
-                          );
-                        },
-                      ),
+                      dotData: FlDotData(show: showDots),
                       belowBarData: BarAreaData(
                         show: true,
                         color: color.withValues(alpha: 0.15),
@@ -261,7 +243,7 @@ class HistoryScreen extends ConsumerWidget {
                   style: AppStyles.captionStyle,
                 ),
                 Text(
-                  'Average: ${(data.fold(0.0, (sum, item) => sum + selector(item)) / data.length).toStringAsFixed(2)}',
+                  'Average: ${average.toStringAsFixed(2)}',
                   style: AppStyles.captionStyle.copyWith(
                     color: color,
                     fontWeight: FontWeight.w600,

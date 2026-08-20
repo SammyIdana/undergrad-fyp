@@ -7,28 +7,19 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // Parses incoming JSON payloads
 
-// ==========================================================
-// MONGOOSE DATA SCHEMA & MODEL
-// ==========================================================
-const TelemetrySchema = new mongoose.Schema({
-    deviceId: { type: String, required: true, index: true },
-    metrics: {
-        temperature: { type: Number, required: true },
-        tds_ppm: { type: Number, required: true },
-        turbidity_ntu: { type: Number, required: true },
-        ph: { type: Number, required: true }
-    },
-    status: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now, index: -1 } // Fast descending index for mobile app
-});
-
-const Telemetry = mongoose.model('Telemetry', TelemetrySchema);
+const NotificationService = require('./services/notificationService');
+const Telemetry = require('./models/telemetry');
+const Alert = require('./models/alert');
+const DeviceToken = require('./models/deviceToken');
 
 // ==========================================================
 // CONNECT TO MONGO REPOSITORY
 // ==========================================================
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Successfully connected to MongoDB Atlas.'))
+    .then(async () => {
+      console.log('Successfully connected to MongoDB Atlas.');
+      await NotificationService.initializeNotificationService();
+    })
     .catch(err => console.error('Database connection error:', err));
 
 // ==========================================================
@@ -38,16 +29,18 @@ app.post('/api/telemetry', async (req, res) => {
     try {
         const { deviceId, metrics, status } = req.body;
         
-        // Construct and insert the new document
         const newRecord = new Telemetry({
             deviceId,
             metrics,
             status
         });
         
-        await newRecord.save();
-        
+        const savedRecord = await newRecord.save();
         console.log(`[Data Ingress] Telemetry saved from ${deviceId} | Status: ${status}`);
+
+        // Evaluate alert transitions after successful save
+        await NotificationService.evaluateTelemetryRecord(savedRecord);
+
         return res.status(201).json({ success: true, message: "Telemetry persisted successfully." });
     } catch (error) {
         console.error('Error handling hardware ingest:', error);
@@ -60,7 +53,6 @@ app.post('/api/telemetry', async (req, res) => {
 // ==========================================================
 app.get('/api/telemetry/latest/:deviceId', async (req, res) => {
     try {
-        // Fetch the absolute newest record for the mobile screen
         const latestData = await Telemetry.findOne({ deviceId: req.params.deviceId })
                                            .sort({ timestamp: -1 });
         
@@ -72,6 +64,47 @@ app.get('/api/telemetry/latest/:deviceId', async (req, res) => {
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
     }
+});
+
+// ==========================================================
+// HTTP POST: REGISTER CLIENT PUSH TOKEN
+// ==========================================================
+app.post('/api/register-token', async (req, res) => {
+  try {
+    const { deviceId, token, platform } = req.body;
+    await NotificationService.registerDeviceToken(deviceId, token, platform);
+    return res.status(200).json({ success: true, message: 'Token registered successfully.' });
+  } catch (error) {
+    console.error('Token registration failed:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================================
+// HTTP GET: ALERT HISTORY
+// ==========================================================
+app.get('/api/alerts', async (req, res) => {
+  try {
+    const alerts = await NotificationService.getAlerts();
+    return res.status(200).json({ success: true, data: alerts });
+  } catch (error) {
+    console.error('Error retrieving alerts:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================================
+// HTTP POST: MARK ALERT READ
+// ==========================================================
+app.post('/api/alerts/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await NotificationService.markAlertRead(id);
+    return res.status(200).json({ success: true, message: 'Alert marked as read.' });
+  } catch (error) {
+    console.error('Error marking alert read:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 5000;

@@ -1,9 +1,11 @@
 {
   "name": "iot-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test:alert": "node test/alertEvaluator.test.js",
+    "test:push": "node scripts/test_push.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +15,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mongoose": "^9.6.3"
+    "firebase-admin": "^12.0.0",
+    "mongoose": "^9.6.3",
+    "node-cron": "^3.0.2"
   }
 }

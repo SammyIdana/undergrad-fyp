@@ -4,32 +4,28 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/water_data.dart';
-import '../services/local_storage_service.dart';
 
 const String apiEndpoint = 'https://water-quality-monitor-api.onrender.com/api/telemetry/latest/ESP32_221A74';
-final _localStorageService = LocalStorageService();
+const Duration _httpTimeout = Duration(seconds: 8);
+const Duration _pollInterval = Duration(seconds: 10);
+final Uri _apiEndpointUri = Uri.parse(apiEndpoint);
 
 final waterDataProvider = StreamProvider<WaterData>((ref) async* {
   bool isAlive = true;
+  bool hasYieldedData = false;
   ref.onDispose(() => isAlive = false);
 
   try {
     while (isAlive) {
       try {
-        final response = await http.get(Uri.parse(apiEndpoint)).timeout(
-          const Duration(seconds: 8),
-        );
+        final response = await http.get(_apiEndpointUri).timeout(_httpTimeout);
 
         if (response.statusCode == 200) {
           final Map<String, dynamic> rawJson = json.decode(response.body);
-          final data = WaterData.fromJson(rawJson);
-          
-          // Cache the data locally
-          await _localStorageService.cacheWaterData(data);
-          
-          yield data;
+          yield WaterData.fromJson(rawJson);
+          hasYieldedData = true;
         } else if (response.statusCode == 404) {
-          final data = WaterData(
+          final waitingData = WaterData(
             deviceId: 'ESP32_221A74',
             ph: 0.0,
             tds: 0.0,
@@ -38,38 +34,32 @@ final waterDataProvider = StreamProvider<WaterData>((ref) async* {
             status: 'WAITING',
             timestamp: DateTime.now(),
           );
-          await _localStorageService.cacheWaterData(data);
-          yield data;
+          yield waitingData;
+          hasYieldedData = true;
         } else {
           throw Exception('Backend HTTP Status: ${response.statusCode}');
         }
       } catch (e) {
         debugPrint('Polling interval glitch: $e');
-        
-        // Try to use cached data on error
-        final lastCached = await _localStorageService.getLastCachedReading();
-        if (lastCached != null) {
-          debugPrint('🔄 Using cached data from local storage');
-          yield lastCached;
+        if (!hasYieldedData) {
+          yield WaterData(
+            deviceId: 'ESP32_221A74',
+            ph: 0.0,
+            tds: 0.0,
+            turbidity: 0.0,
+            temperature: 0.0,
+            status: 'WAITING',
+            timestamp: DateTime.now(),
+          );
+          hasYieldedData = true;
         }
       }
 
       // Polls the server every 10 seconds
-      await Future.delayed(const Duration(seconds: 10));
+      await Future.delayed(_pollInterval);
     }
   } catch (globalError) {
-    debugPrint('Switching to cached data or local testing simulation loop.');
-    
-    // Try to get cached history first
-    final cachedHistory = await _localStorageService.getCachedHistoryData();
-    if (cachedHistory.isNotEmpty) {
-      debugPrint('📦 Loading ${cachedHistory.length} readings from cache');
-      for (final data in cachedHistory) {
-        if (isAlive) yield data;
-      }
-    }
-    
-    // Fallback to simulation if no cache
+    debugPrint('Switching to local testing simulation loop.');
     yield* Stream.periodic(const Duration(seconds: 3), (count) {
       double ph = 7.0 + (count % 3) * 0.2;
       double tds = 300.0 + (count * 10);
