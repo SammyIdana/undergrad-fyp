@@ -11,21 +11,22 @@ undergrad-fyp/ (Main Repository Root)
 │   ├── server.js
 │   └── package.json
 │
+├── firmware/                       # Microcontroller firmware
+│   └── firmware/firmware.ino
+│
+├── PCB design/                     # KiCad schematics, PCB, and Gerber files
+* Install [Node.js](https://nodejs.org/) for the backend service.
+│   └── WaterQualityMonitor/
+* Create a MongoDB Atlas database for telemetry and alert history.
+│
+├── proteus/                        # Proteus system simulation
+│
 └── water-quality-monitoring-app/   # Flutter cross-platform mobile application
     ├── lib/
     ├── android/
     └── pubspec.yaml
+The mobile app uses Firebase Cloud Messaging for push notifications and the generated FlutterFire configuration for platform credentials. From the app directory:
 
-```
-
----
-
-## 📱 Mobile Application Features
-
-* **Real-Time Dashboard**: Displays instantaneous values for pH, TDS, Turbidity, and Temperature fed directly from the monitoring hardware via Firebase.
-* **Status Classification & Recommendation**: Automatically evaluates safety indices (`SAFE`, `CAUTION`, `LIMITED USE`, `UNSAFE`) and yields clear, context-aware water usability actions.
-* **Historical Data Visualization**: Renders interactive trend timelines over the active session utilizing `fl_chart`.
-* **Push Notifications**: Integrated via Firebase Cloud Messaging (FCM) to trigger high-priority alerts on mobile devices the moment parameter anomalies cross critical safety thresholds.
 * **Robust State Architecture**: Powered by Riverpod for reactive state caching and real-time database stream synchronization.
 
 ---
@@ -34,7 +35,65 @@ undergrad-fyp/ (Main Repository Root)
 
 ### Prerequisites
 
-* Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) (latest stable version).
+3. The CLI updates `lib/firebase_options.dart` and the native Firebase configuration files. The app initializes Firebase through `lib/services/firebase_service.dart`; no additional initialization code is required.
+
+### 3. Backend Firebase and Environment Configuration
+
+The backend uses Firebase Admin SDK to send push notifications. Place the Firebase Admin SDK service-account JSON at `iot backend/firebase-service-account.json` and keep it private. Do not commit it or paste its contents into the README.
+
+Create `iot backend/.env` with:
+
+```dotenv
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>/<database>
+PORT=5000
+LOCAL_TIMEZONE=Etc/UTC
+```
+
+Install and start the backend:
+
+```bash
+cd "iot backend"
+npm install
+npm start
+```
+
+### 4. Firebase Database Structure & Security Rules
+
+Ensure your Realtime Database contains a validated structural pattern under the `waterData` key:
+
+```json
+{
+  "waterData": {
+    "pH": 7.2,
+    "TDS": 320,
+    "turbidity": 2.1,
+    "temperature": 25.0,
+    "status": "SAFE",
+    "timestamp": "2026-06-06T15:30:00Z"
+  }
+}
+```
+
+Use authenticated access in development and production. Do not deploy public read/write rules:
+
+```json
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}
+```
+
+### 5. Running the App Locally
+
+```bash
+<!--
+The following example is retained as a quick reference for direct Firebase initialization.
+-->
+```dart
+await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
 * Set up a project environment in the [Firebase Console](https://console.firebase.google.com/).
 
 ### 1. Navigating to the Target Module
@@ -122,6 +181,8 @@ flutter run
 * `firebase_messaging`: Background device token interceptors for instant safety notification delivery.
 * `fl_chart`: High-performance canvas chart renderers for parameter trend history sheets.
 
-```
+---
 
-```
+## Version-Control Notes
+
+KiCad's generated `WaterQualityMonitor-backups` directory is excluded from version control. Only the working schematics and PCB design files should be committed.
