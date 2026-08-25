@@ -96,11 +96,11 @@ class AppHelpers {
         return 'DANGEROUS';
       case 'tds':
         if (value < 300) return 'SAFE';
-        if (value < 600) return 'CAUTION';
+        if (value < 1000) return 'CAUTION';
         return 'DANGEROUS';
       case 'turbidity':
-        if (value < 1.0) return 'SAFE';
-        if (value < 4.0) return 'CAUTION';
+        if (value < 5.0) return 'SAFE';
+        if (value < 25.0) return 'CAUTION';
         return 'DANGEROUS';
       case 'temperature':
         if (value >= 15 && value <= 35) return 'SAFE';
