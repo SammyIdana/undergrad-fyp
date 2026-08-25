@@ -20,7 +20,7 @@ DallasTemperature sensors(&oneWire);
 // ==========================================================
 // 📶 NETWORK, BACKEND & GSM CONFIGURATION
 // ==========================================================
-const char* ssid = "hhh";          
+const char* ssid = "Idana";          
 const char* password = "admin1234";  
 
 // Production Render API Target
