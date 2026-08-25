@@ -3,13 +3,13 @@
 const SAFE_RANGES = {
   ph: { low: 6.5, high: 8.5 },
   tds: { low: 0, high: 300 },
-  turbidity: { low: 0, high: 1.0 },
+  turbidity: { low: 0, high: 5.0 },
   temperature: { low: 15, high: 35 },
 };
 
 const CRITICAL_RANGES = {
   ph: { low: 6.0, high: 9.0 },
-  turbidity: { low: 0, high: 5.0 },
+  turbidity: { low: 0, high: 100.0 },
   temperature: { low: 10, high: 40 },
 };
 
@@ -21,7 +21,7 @@ function determineSeverity(parameter, value) {
   }
 
   if (parameter === 'tds') {
-    if (value > 500) return 'critical';
+    if (value > 1000) return 'critical';
     if (value > SAFE_RANGES.tds.high) return 'warning';
     return 'normal';
   }

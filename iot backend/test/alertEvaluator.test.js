@@ -14,7 +14,8 @@ function runTests() {
   assert.strictEqual(determineSeverity('ph', 8.6), 'warning');
   assert.strictEqual(determineSeverity('tds', 250), 'normal');
   assert.strictEqual(determineSeverity('tds', 350), 'warning');
-  assert.strictEqual(determineSeverity('tds', 520), 'critical');
+  assert.strictEqual(determineSeverity('tds', 520), 'warning');
+  assert.strictEqual(determineSeverity('tds', 1001), 'critical');
 
   const historyCritical = [8.8, 8.9, 9.1];
   assert.strictEqual(hasConsecutiveCriticalCycles(historyCritical, 'ph', 2), true);
