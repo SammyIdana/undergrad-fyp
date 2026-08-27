@@ -7,11 +7,36 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // Parses incoming JSON payloads
 
+// ==========================================================
+// FIREBASE ADMIN INITIALIZATION (RENDER & LOCAL COMPATIBLE)
+// ==========================================================
 const admin = require('firebase-admin');
-const serviceAccount = require('./firebase-service-account.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+let serviceAccount;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    // Production (Render): Parse raw JSON string from environment variable
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (err) {
+    console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT environment variable:', err.message);
+  }
+} else {
+  try {
+    // Local Development Fallback: Read local JSON file
+    serviceAccount = require('./firebase-service-account.json');
+  } catch (err) {
+    console.warn('⚠️ Local firebase-service-account.json not found and no environment variable set.');
+  }
+}
+
+if (serviceAccount) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+  console.log('✅ Firebase Admin SDK initialized successfully.');
+} else {
+  console.error('❌ Firebase Admin SDK failed to initialize: Missing credentials.');
+}
 
 const telemetryController = require('./controllers/telemetryController');
 const Reading = require('./models/Reading');
@@ -22,10 +47,27 @@ const Device = require('./models/Device');
 // CONNECT TO MONGO REPOSITORY
 // ==========================================================
 mongoose.connect(process.env.MONGO_URI)
-    .then(async () => {
-      console.log('Successfully connected to MongoDB Atlas.');
-    })
-    .catch(err => console.error('Database connection error:', err));
+  .then(async () => {
+    console.log('Successfully connected to MongoDB Atlas.');
+  })
+  .catch(err => console.error('Database connection error:', err));
+
+// ==========================================================
+// HTTP GET: HEALTH CHECK ENDPOINTS (PREVENTS "Cannot GET /")
+// ==========================================================
+app.get('/', (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'Water Quality Telemetry API is live and operational.'
+  });
+});
+
+app.get('/api/telemetry', (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'Telemetry ingress endpoint active. Send HTTP POST requests with JSON payload to ingest metrics.'
+  });
+});
 
 // ==========================================================
 // HTTP POST: ESP32 INGRESS GATEWAY
@@ -36,18 +78,18 @@ app.post('/api/telemetry', telemetryController.ingestTelemetry);
 // HTTP GET: MOBILE CLIENT DATA FETCH
 // ==========================================================
 app.get('/api/telemetry/latest/:deviceId', async (req, res) => {
-    try {
-        const latestData = await Reading.findOne({ deviceId: req.params.deviceId })
-                                           .sort({ timestamp: -1 });
-        
-        if (!latestData) {
-            return res.status(404).json({ success: false, message: "No logs found for this device ID." });
-        }
-        
-        return res.status(200).json({ success: true, data: latestData });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
+  try {
+    const latestData = await Reading.findOne({ deviceId: req.params.deviceId })
+                                     .sort({ timestamp: -1 });
+    
+    if (!latestData) {
+      return res.status(404).json({ success: false, message: "No logs found for this device ID." });
     }
+    
+    return res.status(200).json({ success: true, data: latestData });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ==========================================================
