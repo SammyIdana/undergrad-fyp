@@ -26,13 +26,19 @@ const char* password = "admin1234";
 // Production Render API Target
 const char* serverEndpoint = "https://water-quality-monitor-api.onrender.com/api/telemetry";
 
-// Locked down to match your Flutter stream provider architecture
+// System & User Identifiers
 const String uniqueDeviceId = "ESP32_221A74";
-
-// GSM Target Recipient & Cooldown Configuration
 const char* RECIPIENT_PHONE = "+233500156809";
+
+// ==========================================================
+// 💡 ALERT STATE ENGINE & RATE-LIMITING CONTROLS
+// ==========================================================
 unsigned long lastAlertTime = 0;
-const unsigned long ALERT_COOLDOWN_MS = 300000; // 5-minute cooldown between SMS dispatches
+const unsigned long ALERT_COOLDOWN_MS = 300000; // 5-minute cooldown between UNSAFE alerts
+
+int unsafeSmsCount = 0;
+const int MAX_UNSAFE_BURST = 3;  // Capped at 3 SMS messages per contamination event
+bool faultAlertSent = false;     // Hardware fault latch (triggers ONCE per MCU boot)
 
 // ==========================================================
 // 🧪 CALIBRATION & MATHEMATICAL CONSTANTS
@@ -119,10 +125,10 @@ void connectToWiFi() {
 void setup() {
   Serial.begin(115200);
   
-  // Initialize GSM Modem Serial
+  // Initialize GSM Modem Serial Interface
   Serial2.begin(9600, SERIAL_8N1, GSM_RX_PIN, GSM_TX_PIN);
 
-  // Prevent Battery Brownouts during Wi-Fi transmit spikes
+  // Prevent battery/supply brownouts during Wi-Fi transmit spikes
   WiFi.setTxPower(WIFI_POWER_15dBm);
 
   sensors.begin(); 
@@ -163,14 +169,14 @@ void loop() {
   // Temperature acquisition
   sensors.requestTemperatures();
   float tempAvg = sensors.getTempCByIndex(0);
-  if (tempAvg < -50.0) tempAvg = 25.0; // Fail-safe fallback
+  if (tempAvg < -50.0) tempAvg = 25.0; // Fail-safe fallback if sensor unplugs
 
   // 1️⃣ Calculate Averages
   float phRawAvg = (float)phRawSum / sampleCount;
   float tdsRawAvg = (float)tdsRawSum / sampleCount;
   float turbidityRawAvg = (float)turbidityRawSum / sampleCount;
 
-  // 2️⃣ Convert TDS Data
+  // 2️⃣ Convert TDS Data (Temperature-Compensated)
   float tdsVoltage = tdsRawAvg * (3.3 / 4095.0);
   float compensationCoefficient = 1.0 + 0.02 * (tempAvg - 25.0); 
   float compensatedVoltage = tdsVoltage / compensationCoefficient;
@@ -201,7 +207,7 @@ void loop() {
   if (calculatedpH < 0.0) calculatedpH = 0.0;
   if (calculatedpH > 14.0) calculatedpH = 14.0;
 
-  // 5️⃣ Algorithmic Classification
+  // 5️⃣ Algorithmic Classification Matrix (Worst-Parameter Rule)
   String appStatus = "UNSAFE";
   if (calculatedpH >= 6.5 && calculatedpH <= 8.5 && tdsValue <= 300.0 && turbidityNTU <= 5.0) {
     appStatus = "SAFE";
@@ -213,7 +219,7 @@ void loop() {
 
   bool isCriticalExcursion = (appStatus == "UNSAFE");
 
-  // Print Local Serial Summary
+  // Print Local Diagnostic Summary
   Serial.println("\n📊 === TELEMETRY UPDATE ===");
   Serial.print(" Device Identifier : "); Serial.println(uniqueDeviceId);
   Serial.print(" Temperature (°C)  : "); Serial.println(tempAvg, 1);
@@ -224,28 +230,51 @@ void loop() {
   Serial.print(" HARDWARE FAULT    : "); Serial.println(hardwareFaultDetected ? "YES" : "NO");
   Serial.println("===========================\n");
 
-  // 6️⃣ GSM Alert Engine (Triggered on Critical Excursion or Hardware Fault)
-  if (isCriticalExcursion || hardwareFaultDetected) {
-    if (millis() - lastAlertTime >= ALERT_COOLDOWN_MS || lastAlertTime == 0) {
-      
-      String smsPayload = "WATER MONITOR ALERT!\n";
-      smsPayload += "Node: " + uniqueDeviceId + "\n";
-      smsPayload += "Status: " + appStatus + "\n";
-      smsPayload += "pH: " + String(calculatedpH, 2) + "\n";
-      smsPayload += "TDS: " + String((int)tdsValue) + " PPM\n";
-      smsPayload += "Turb: " + String(turbidityNTU, 1) + " NTU\n";
-      if (hardwareFaultDetected) smsPayload += "WARN: Turbidity Sensor Hardware Fault!\n";
+  // 6️⃣ Smart Burst & State-Reset GSM Alert Engine
+  bool pendingFaultAlert = hardwareFaultDetected && !faultAlertSent;
+  bool pendingWaterAlert = isCriticalExcursion && 
+                           (unsafeSmsCount < MAX_UNSAFE_BURST) && 
+                           (millis() - lastAlertTime >= ALERT_COOLDOWN_MS || lastAlertTime == 0);
 
-      Serial.println("📱 [GSM] Dispatching SMS Alert...");
-      if (dispatchSMS(RECIPIENT_PHONE, smsPayload)) {
-        Serial.println("✅ [GSM] Alert delivered to recipient.");
-        lastAlertTime = millis(); // Reset 5-minute cooldown timer
-      } else {
-        Serial.println("❌ [GSM] SMS dispatch failed.");
+  if (pendingFaultAlert || pendingWaterAlert) {
+    
+    String smsPayload = "WATER MONITOR ALERT!\n";
+    smsPayload += "Node: " + uniqueDeviceId + "\n";
+    smsPayload += "Status: " + appStatus + "\n";
+    smsPayload += "pH: " + String(calculatedpH, 2) + "\n";
+    smsPayload += "TDS: " + String((int)tdsValue) + " PPM\n";
+    smsPayload += "Turb: " + String(turbidityNTU, 1) + " NTU\n";
+    
+    if (pendingFaultAlert) {
+      smsPayload += "WARN: Turbidity Sensor Hardware Fault!\n";
+    }
+
+    Serial.println("📱 [GSM] Dispatching SMS Alert...");
+    if (dispatchSMS(RECIPIENT_PHONE, smsPayload)) {
+      Serial.println("✅ [GSM] Alert delivered successfully.");
+      
+      if (pendingFaultAlert) {
+        faultAlertSent = true;
+        Serial.println("🔒 [GSM] Hardware fault SMS latched (1/1). Will not re-send until MCU reboot.");
+      }
+      
+      if (pendingWaterAlert) {
+        unsafeSmsCount++;
+        lastAlertTime = millis();
+        Serial.printf("📱 [GSM] UNSAFE Water Alert Burst: %d of %d dispatched.\n", unsafeSmsCount, MAX_UNSAFE_BURST);
       }
     } else {
-      Serial.println("⏳ [GSM] Alert condition active, but SMS dispatch is rate-limited.");
+      Serial.println("❌ [GSM] SMS dispatch failed. Will retry next sampling window.");
     }
+  } 
+  // State-Driven Counter Maintenance & Logging
+  else if (isCriticalExcursion && unsafeSmsCount >= MAX_UNSAFE_BURST) {
+    Serial.println("🔒 [GSM] UNSAFE state active, but 3-SMS burst limit reached. Pausing SMS dispatches.");
+  } 
+  else if (!isCriticalExcursion && unsafeSmsCount > 0) {
+    // 🔄 AUTOMATIC RESET: Water quality recovered; clear counter for future hazards
+    unsafeSmsCount = 0;
+    Serial.println("🔄 [GSM] Water quality recovered. Alert burst counter reset to 0.");
   }
 
   // 7️⃣ Cloud Telemetry Sync via Wi-Fi

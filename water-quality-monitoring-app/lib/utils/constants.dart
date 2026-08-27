@@ -67,6 +67,7 @@ class AppConfig {
   // Update this to your PC's LAN IP when running on a real device.
   // Example: 'http://192.168.1.120:5000'
   static const String backendBaseUrl = 'http://10.0.2.2:5000';
+  static const String targetDeviceId = 'ESP32_221A74';
 }
 
 // ─── Type Scale ───────────────────────────────────────────────────────────────

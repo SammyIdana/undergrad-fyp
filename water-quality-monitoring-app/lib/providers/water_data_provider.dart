@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/water_data.dart';
 
-const String apiEndpoint = 'https://water-quality-monitor-api.onrender.com/api/telemetry/latest/ESP32_221A74';
+import '../utils/constants.dart';
+
+final String apiEndpoint = 'https://water-quality-monitor-api.onrender.com/api/telemetry/latest/${AppConfig.targetDeviceId}';
 const Duration _httpTimeout = Duration(seconds: 8);
 const Duration _pollInterval = Duration(seconds: 10);
 final Uri _apiEndpointUri = Uri.parse(apiEndpoint);
@@ -26,7 +28,7 @@ final waterDataProvider = StreamProvider<WaterData>((ref) async* {
           hasYieldedData = true;
         } else if (response.statusCode == 404) {
           final waitingData = WaterData(
-            deviceId: 'ESP32_221A74',
+            deviceId: AppConfig.targetDeviceId,
             ph: 0.0,
             tds: 0.0,
             turbidity: 0.0,
@@ -43,7 +45,7 @@ final waterDataProvider = StreamProvider<WaterData>((ref) async* {
         debugPrint('Polling interval glitch: $e');
         if (!hasYieldedData) {
           yield WaterData(
-            deviceId: 'ESP32_221A74',
+            deviceId: AppConfig.targetDeviceId,
             ph: 0.0,
             tds: 0.0,
             turbidity: 0.0,
@@ -70,7 +72,7 @@ final waterDataProvider = StreamProvider<WaterData>((ref) async* {
       if (tds > 600) status = 'DANGEROUS';
       
       return WaterData(
-        deviceId: 'ESP32_221A74',
+        deviceId: AppConfig.targetDeviceId,
         ph: ph,
         tds: tds,
         turbidity: 1.0,

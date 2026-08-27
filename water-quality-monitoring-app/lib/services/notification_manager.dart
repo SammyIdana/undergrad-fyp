@@ -122,7 +122,7 @@ class NotificationManager {
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'deviceId': 'mobile_client',
+          'deviceId': AppConfig.targetDeviceId,
           'token': token,
           'platform': platform,
         }),

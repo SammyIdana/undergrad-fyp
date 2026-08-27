@@ -12,6 +12,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await FirebaseService().initialize();
+  await NotificationManager.instance.initialize();
 
   runApp(
     const ProviderScope(
@@ -19,8 +20,6 @@ void main() async {
     ),
   );
 
-  // Initialize notification registration and handlers after the UI is available.
-  unawaited(NotificationManager.instance.initialize());
 }
 
 class WaterMonitoringApp extends ConsumerWidget {
