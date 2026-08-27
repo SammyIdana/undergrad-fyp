@@ -1,7 +1,7 @@
 const admin = require('firebase-admin');
 const Device = require('../models/Device');
 const Reading = require('../models/Reading');
-const Alert = require('../models/Alert');
+const Alert = require('../models/alert');
 
 const PUSH_COOLDOWN_MS = 15 * 60 * 1000; // 15 Minutes
 
