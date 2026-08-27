@@ -40,7 +40,7 @@ if (serviceAccount) {
 
 const telemetryController = require('./controllers/telemetryController');
 const Reading = require('./models/Reading');
-const Alert = require('./models/Alert');
+const Alert = require('./models/alert');
 const Device = require('./models/Device');
 
 // ==========================================================
