@@ -230,54 +230,7 @@ void loop() {
   Serial.print(" HARDWARE FAULT    : "); Serial.println(hardwareFaultDetected ? "YES" : "NO");
   Serial.println("===========================\n");
 
-  // 6️⃣ Smart Burst & State-Reset GSM Alert Engine
-  bool pendingFaultAlert = hardwareFaultDetected && !faultAlertSent;
-  bool pendingWaterAlert = isCriticalExcursion && 
-                           (unsafeSmsCount < MAX_UNSAFE_BURST) && 
-                           (millis() - lastAlertTime >= ALERT_COOLDOWN_MS || lastAlertTime == 0);
-
-  if (pendingFaultAlert || pendingWaterAlert) {
-    
-    String smsPayload = "WATER MONITOR ALERT!\n";
-    smsPayload += "Node: " + uniqueDeviceId + "\n";
-    smsPayload += "Status: " + appStatus + "\n";
-    smsPayload += "pH: " + String(calculatedpH, 2) + "\n";
-    smsPayload += "TDS: " + String((int)tdsValue) + " PPM\n";
-    smsPayload += "Turb: " + String(turbidityNTU, 1) + " NTU\n";
-    
-    if (pendingFaultAlert) {
-      smsPayload += "WARN: Turbidity Sensor Hardware Fault!\n";
-    }
-
-    Serial.println("📱 [GSM] Dispatching SMS Alert...");
-    if (dispatchSMS(RECIPIENT_PHONE, smsPayload)) {
-      Serial.println("✅ [GSM] Alert delivered successfully.");
-      
-      if (pendingFaultAlert) {
-        faultAlertSent = true;
-        Serial.println("🔒 [GSM] Hardware fault SMS latched (1/1). Will not re-send until MCU reboot.");
-      }
-      
-      if (pendingWaterAlert) {
-        unsafeSmsCount++;
-        lastAlertTime = millis();
-        Serial.printf("📱 [GSM] UNSAFE Water Alert Burst: %d of %d dispatched.\n", unsafeSmsCount, MAX_UNSAFE_BURST);
-      }
-    } else {
-      Serial.println("❌ [GSM] SMS dispatch failed. Will retry next sampling window.");
-    }
-  } 
-  // State-Driven Counter Maintenance & Logging
-  else if (isCriticalExcursion && unsafeSmsCount >= MAX_UNSAFE_BURST) {
-    Serial.println("🔒 [GSM] UNSAFE state active, but 3-SMS burst limit reached. Pausing SMS dispatches.");
-  } 
-  else if (!isCriticalExcursion && unsafeSmsCount > 0) {
-    // 🔄 AUTOMATIC RESET: Water quality recovered; clear counter for future hazards
-    unsafeSmsCount = 0;
-    Serial.println("🔄 [GSM] Water quality recovered. Alert burst counter reset to 0.");
-  }
-
-  // 7️⃣ Cloud Telemetry Sync via Wi-Fi
+  // 7️⃣ Cloud Telemetry Sync via Wi-Fi (Attempt first; GSM is fallback only if Wi-Fi is unavailable)
   connectToWiFi();
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -316,5 +269,52 @@ void loop() {
     http.end(); 
   } else {
     Serial.println("⚠️ Skipping POST request: No active Wi-Fi connection.");
+
+    // 6️⃣ Smart Burst & State-Reset GSM Alert Engine (fallback only when Wi-Fi is unavailable)
+    bool pendingFaultAlert = hardwareFaultDetected && !faultAlertSent;
+    bool pendingWaterAlert = isCriticalExcursion && 
+                             (unsafeSmsCount < MAX_UNSAFE_BURST) && 
+                             (millis() - lastAlertTime >= ALERT_COOLDOWN_MS || lastAlertTime == 0);
+
+    if (pendingFaultAlert || pendingWaterAlert) {
+      
+      String smsPayload = "WATER MONITOR ALERT!\n";
+      smsPayload += "Node: " + uniqueDeviceId + "\n";
+      smsPayload += "Status: " + appStatus + "\n";
+      smsPayload += "pH: " + String(calculatedpH, 2) + "\n";
+      smsPayload += "TDS: " + String((int)tdsValue) + " PPM\n";
+      smsPayload += "Turb: " + String(turbidityNTU, 1) + " NTU\n";
+      
+      if (pendingFaultAlert) {
+        smsPayload += "WARN: Turbidity Sensor Hardware Fault!\n";
+      }
+
+      Serial.println("📱 [GSM] Dispatching SMS Alert...");
+      if (dispatchSMS(RECIPIENT_PHONE, smsPayload)) {
+        Serial.println("✅ [GSM] Alert delivered successfully.");
+        
+        if (pendingFaultAlert) {
+          faultAlertSent = true;
+          Serial.println("🔒 [GSM] Hardware fault SMS latched (1/1). Will not re-send until MCU reboot.");
+        }
+        
+        if (pendingWaterAlert) {
+          unsafeSmsCount++;
+          lastAlertTime = millis();
+          Serial.printf("📱 [GSM] UNSAFE Water Alert Burst: %d of %d dispatched.\n", unsafeSmsCount, MAX_UNSAFE_BURST);
+        }
+      } else {
+        Serial.println("❌ [GSM] SMS dispatch failed. Will retry next sampling window.");
+      }
+    } 
+    // State-Driven Counter Maintenance & Logging
+    else if (isCriticalExcursion && unsafeSmsCount >= MAX_UNSAFE_BURST) {
+      Serial.println("🔒 [GSM] UNSAFE state active, but 3-SMS burst limit reached. Pausing SMS dispatches.");
+    } 
+    else if (!isCriticalExcursion && unsafeSmsCount > 0) {
+      // 🔄 AUTOMATIC RESET: Water quality recovered; clear counter for future hazards
+      unsafeSmsCount = 0;
+      Serial.println("🔄 [GSM] Water quality recovered. Alert burst counter reset to 0.");
+    }
   }
 }
