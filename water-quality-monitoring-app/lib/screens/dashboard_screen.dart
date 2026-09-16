@@ -5,6 +5,7 @@ import '../providers/history_provider.dart'; // Added to allow historical databa
 import '../providers/theme_provider.dart';
 import '../widgets/parameter_card.dart';
 import '../widgets/status_banner.dart';
+import '../widgets/ai_insight_card.dart';
 import '../utils/constants.dart';
 import 'alert_history_screen.dart';
 import 'history_screen.dart';
@@ -221,6 +222,10 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 28),
+
+                  // AI Insight Card
+                  const AiInsightCard(),
                   const SizedBox(height: 28),
 
                   // Timestamp card

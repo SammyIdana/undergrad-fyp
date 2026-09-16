@@ -4,8 +4,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "node server.js",
     "test:alert": "node test/alertEvaluator.test.js",
-    "test:push": "node scripts/test_push.js"
+    "test:push": "node scripts/test_push.js",
+    "test:ai": "node test/aiInsight.test.js"
   },
   "keywords": [],
   "author": "",

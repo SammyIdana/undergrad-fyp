@@ -42,6 +42,7 @@ const telemetryController = require('./controllers/telemetryController');
 const Reading = require('./models/Reading');
 const Alert = require('./models/alert');
 const Device = require('./models/Device');
+const { generateLocalInsight } = require('./services/aiInsight');
 
 // ==========================================================
 // CONNECT TO MONGO REPOSITORY
@@ -73,6 +74,27 @@ app.get('/api/telemetry', (req, res) => {
 // HTTP POST: ESP32 INGRESS GATEWAY
 // ==========================================================
 app.post('/api/telemetry', telemetryController.ingestTelemetry);
+
+// ==========================================================
+// HTTP GET: AI INSIGHT FOR LATEST READING
+// ==========================================================
+app.get('/api/telemetry/latest/:deviceId/insight', async (req, res) => {
+  try {
+    const latestData = await Reading.findOne({ deviceId: req.params.deviceId })
+                                     .sort({ timestamp: -1 });
+    if (!latestData) {
+      return res.status(404).json({ success: false, message: 'No readings found for this device ID.' });
+    }
+    const insight = generateLocalInsight(
+      latestData.deviceId,
+      latestData.metrics,
+      latestData.status
+    );
+    return res.status(200).json({ success: true, data: insight });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // ==========================================================
 // HTTP GET: MOBILE CLIENT DATA FETCH
