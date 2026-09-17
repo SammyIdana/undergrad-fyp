@@ -17,7 +17,7 @@ function runTests() {
   assert.strictEqual(determineSeverity('tds', 520), 'warning');
   assert.strictEqual(determineSeverity('tds', 1001), 'critical');
 
-  const historyCritical = [8.8, 8.9, 9.1];
+  const historyCritical = [9.1, 9.2, 7.0];
   assert.strictEqual(hasConsecutiveCriticalCycles(historyCritical, 'ph', 2), true);
 
   const historyNormal = [7.0, 7.2, 7.1];
@@ -29,7 +29,7 @@ function runTests() {
   const recent = new Date(now.getTime() - 10 * 60 * 1000);
   assert.strictEqual(isCooldownActive(recent), true);
 
-  const downTrend = [8.2, 8.0, 7.8, 7.6, 7.4, 7.2];
+  const downTrend = [7.8, 7.6, 7.4, 7.2, 7.0, 6.8];
   assert.strictEqual(isSteadyTrendTowardLimit(downTrend, 'ph'), true);
 
   const flatTds = [270, 280, 290, 295, 298, 299];
