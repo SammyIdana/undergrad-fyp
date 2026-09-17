@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/alert_provider.dart';
+import '../providers/chat_provider.dart';
+import 'ai_chat_screen.dart';
 import '../utils/constants.dart';
 
 class AlertHistoryScreen extends ConsumerWidget {
@@ -105,6 +107,24 @@ class AlertHistoryScreen extends ConsumerWidget {
                               style: AppStyles.labelStyle.copyWith(color: AppColors.safe),
                             ),
                           const Spacer(),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            ),
+                            icon: const Icon(Icons.smart_toy_rounded, size: 16),
+                            label: const Text('Forward to AI'),
+                            onPressed: () {
+                              ref.read(chatProvider.notifier).forwardAlert(alert);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AiChatScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 4),
                           TextButton(
                             onPressed: alert.read
                                 ? null

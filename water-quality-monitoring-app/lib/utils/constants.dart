@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 // ─── Light Mode Palette ───────────────────────────────────────────────────────
 class AppColors {
@@ -64,9 +65,12 @@ class AppColorsDark {
 }
 
 class AppConfig {
-  // Update this to your PC's LAN IP when running on a real device.
-  // Example: 'http://192.168.1.120:5000'
-  static const String backendBaseUrl = 'http://10.0.2.2:5000';
+  // Uses localhost when running in Chrome/Web, 10.0.2.2 for Android Emulator,
+  // or your PC's LAN IP when testing on a physical phone.
+  static String get backendBaseUrl {
+    if (kIsWeb) return 'http://localhost:5000';
+    return 'http://10.0.2.2:5000';
+  }
   static const String targetDeviceId = 'ESP32_221A74';
 }
 

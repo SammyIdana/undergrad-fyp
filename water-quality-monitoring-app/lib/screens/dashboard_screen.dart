@@ -5,7 +5,8 @@ import '../providers/history_provider.dart'; // Added to allow historical databa
 import '../providers/theme_provider.dart';
 import '../widgets/parameter_card.dart';
 import '../widgets/status_banner.dart';
-import '../widgets/ai_insight_card.dart';
+import '../widgets/ai_assistant_card.dart';
+import 'ai_chat_screen.dart';
 import '../utils/constants.dart';
 import 'alert_history_screen.dart';
 import 'history_screen.dart';
@@ -96,7 +97,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           Container(
-            margin: const EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
@@ -113,7 +114,27 @@ class DashboardScreen extends ConsumerWidget {
                 );
               },
             ),
-          )
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              tooltip: 'AI Water Assistant',
+              icon: const Icon(Icons.smart_toy_rounded),
+              color: Theme.of(context).colorScheme.primary,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AiChatScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -224,8 +245,8 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 28),
 
-                  // AI Insight Card
-                  const AiInsightCard(),
+                  // AI Assistant Card
+                  const AiAssistantCard(),
                   const SizedBox(height: 28),
 
                   // Timestamp card
