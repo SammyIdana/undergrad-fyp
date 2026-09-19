@@ -152,11 +152,15 @@ class DashboardScreen extends ConsumerWidget {
         child: asyncData.when(
           data: (data) {
             if (data.status == 'WAITING') {
-              // 💡 Wrapped this initialization screen in a ListView to make sure pull-to-refresh functions even while loading
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                  const SizedBox(height: 24),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: AiAssistantCard(),
+                  ),
+                  const SizedBox(height: 24),
                   Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -243,11 +247,11 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
 
-                  // AI Assistant Card
+                  // AI Assistant directly below the parameter cards
                   const AiAssistantCard(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
 
                   // Timestamp card
                   Container(
@@ -318,7 +322,12 @@ class DashboardScreen extends ConsumerWidget {
           loading: () => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: AiAssistantCard(),
+              ),
+              const SizedBox(height: 24),
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -349,7 +358,12 @@ class DashboardScreen extends ConsumerWidget {
           error: (err, stack) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: AiAssistantCard(),
+              ),
+              const SizedBox(height: 24),
               Center(
                 child: Container(
                   margin: const EdgeInsets.all(24),

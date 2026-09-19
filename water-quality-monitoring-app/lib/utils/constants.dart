@@ -65,12 +65,10 @@ class AppColorsDark {
 }
 
 class AppConfig {
-  // Uses localhost when running in Chrome/Web, 10.0.2.2 for Android Emulator,
-  // or your PC's LAN IP when testing on a physical phone.
-  static String get backendBaseUrl {
-    if (kIsWeb) return 'http://localhost:5000';
-    return 'http://10.0.2.2:5000';
-  }
+  // The deployed API is reachable from a physical phone and emulator.
+  static String get backendBaseUrl => kIsWeb
+      ? 'http://localhost:5000'
+      : 'https://water-quality-monitor-api.onrender.com';
   static const String targetDeviceId = 'ESP32_221A74';
 }
 

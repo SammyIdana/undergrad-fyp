@@ -7,12 +7,12 @@
 // ==========================================================
 // 📌 HARDWARE PIN CONFIGURATION
 // ==========================================================
-#define ONE_WIRE_BUS 4     // DS18B20 Temperature Sensor Data Pin
-#define TDS_PIN 35         // Analog Pin for TDS Sensor
-#define TURBIDITY_PIN 32   // Analog Pin for Turbidity Sensor
-#define PH_PIN 34          // Analog Pin for pH Sensor
-#define GSM_RX_PIN 16      // ESP32 RX2 -> GSM TXD
-#define GSM_TX_PIN 17      // ESP32 TX2 -> GSM RXD
+#define ONE_WIRE_BUS 4     // DS18B20 Temperature Sensor Data Pin[cite: 6]
+#define TDS_PIN 35         // Analog Pin for TDS Sensor[cite: 6]
+#define TURBIDITY_PIN 32   // Analog Pin for Turbidity Sensor[cite: 6]
+#define PH_PIN 34          // Analog Pin for pH Sensor (ADC1 Input)[cite: 6]
+#define GSM_RX_PIN 16      // ESP32 RX2 -> GSM TXD[cite: 6]
+#define GSM_TX_PIN 17      // ESP32 TX2 -> GSM RXD[cite: 6]
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
@@ -24,17 +24,17 @@ const char* ssid = "Idana";
 const char* password = "admin1234";  
 
 // Production Render API Target
-const char* serverEndpoint = "https://water-quality-monitor-api.onrender.com/api/telemetry";
+const char* serverEndpoint = "https://water-quality-monitor-api.onrender.com/api/telemetry"; //[cite: 6]
 
 // System & User Identifiers
-const String uniqueDeviceId = "ESP32_221A74";
+const String uniqueDeviceId = "ESP32_221A74"; //[cite: 6]
 const char* RECIPIENT_PHONE = "+233500156809";
 
 // ==========================================================
 // 💡 ALERT STATE ENGINE & RATE-LIMITING CONTROLS
 // ==========================================================
 unsigned long lastAlertTime = 0;
-const unsigned long ALERT_COOLDOWN_MS = 300000; // 5-minute cooldown between UNSAFE alerts
+const unsigned long ALERT_COOLDOWN_MS = 300000; // 5-minute cooldown between UNSAFE alerts[cite: 6]
 
 int unsafeSmsCount = 0;
 const int MAX_UNSAFE_BURST = 3;  // Capped at 3 SMS messages per contamination event
@@ -43,12 +43,13 @@ bool faultAlertSent = false;     // Hardware fault latch (triggers ONCE per MCU 
 // ==========================================================
 // 🧪 CALIBRATION & MATHEMATICAL CONSTANTS
 // ==========================================================
-const float neutralVoltage = 2.71;    // Measured analog voltage at pH 7.0
-const float neutralpH = 7.0;         
-const float phSlope = -4.11;         
+// FIX: Updated neutralVoltage from 2.71V to 2.50V to match hardware Po neutral output (1.70V * 1.47)[cite: 6]
+const float neutralVoltage = 2.112;    // Measured module voltage at pH 7.0[cite: 6]
+const float neutralpH = 7.0;         // Neutral reference point[cite: 6]
+const float phSlope = -4.11;         // Transfer slope[cite: 6]
 
-const float clearWaterVoltage = 1.62; // Voltage reading in clear water
-const float turbiditySlope = 1851.85; // Mapping factor to NTU units
+const float clearWaterVoltage = 1.62; // Voltage reading in clear water (0 NTU)[cite: 6]
+const float turbiditySlope = 1851.85; // Mapping factor to NTU units[cite: 6]
 
 // ==========================================================
 // 📡 GSM UTILITY FUNCTIONS
@@ -89,7 +90,7 @@ bool dispatchSMS(const char* number, const String& text) {
 
   Serial2.print(text);
   delay(500);
-  Serial2.write(26); // ASCII 26 = Ctrl+Z
+  Serial2.write(26); // ASCII 26 = Ctrl+Z[cite: 6]
 
   return sendATCommand("", "+CMGS:", 15000);
 }
@@ -126,10 +127,10 @@ void setup() {
   Serial.begin(115200);
   
   // Initialize GSM Modem Serial Interface
-  Serial2.begin(9600, SERIAL_8N1, GSM_RX_PIN, GSM_TX_PIN);
+  Serial2.begin(9600, SERIAL_8N1, GSM_RX_PIN, GSM_TX_PIN); //[cite: 6]
 
   // Prevent battery/supply brownouts during Wi-Fi transmit spikes
-  WiFi.setTxPower(WIFI_POWER_15dBm);
+  WiFi.setTxPower(WIFI_POWER_15dBm); //[cite: 6]
 
   sensors.begin(); 
   
@@ -153,7 +154,7 @@ void loop() {
   long tdsRawSum = 0;
   long turbidityRawSum = 0;
   
-  int sampleCount = 300; 
+  int sampleCount = 300; // 300 samples across 30 seconds[cite: 6]
   Serial.print("Collecting sensor matrix data over 30-second window...");
   
   for (int i = 0; i < sampleCount; i++) {
@@ -169,68 +170,73 @@ void loop() {
   // Temperature acquisition
   sensors.requestTemperatures();
   float tempAvg = sensors.getTempCByIndex(0);
-  if (tempAvg < -50.0) tempAvg = 25.0; // Fail-safe fallback if sensor unplugs
+  if (tempAvg < -50.0) tempAvg = 25.0; // Fail-safe fallback if sensor unplugs[cite: 6]
 
   // 1️⃣ Calculate Averages
   float phRawAvg = (float)phRawSum / sampleCount;
   float tdsRawAvg = (float)tdsRawSum / sampleCount;
   float turbidityRawAvg = (float)turbidityRawSum / sampleCount;
 
-  // 2️⃣ Convert TDS Data (Temperature-Compensated)
+  // 2️⃣ Convert TDS Data (Temperature-Compensated)[cite: 6]
   float tdsVoltage = tdsRawAvg * (3.3 / 4095.0);
-  float compensationCoefficient = 1.0 + 0.02 * (tempAvg - 25.0); 
+  float compensationCoefficient = 1.0 + 0.02 * (tempAvg - 25.0); //[cite: 6]
   float compensatedVoltage = tdsVoltage / compensationCoefficient;
-  float tdsValue = (133.42 * pow(compensatedVoltage, 3) - 255.86 * pow(compensatedVoltage, 2) + 857.39 * compensatedVoltage);
+  float tdsValue = (133.42 * pow(compensatedVoltage, 3) - 255.86 * pow(compensatedVoltage, 2) + 857.39 * compensatedVoltage); //[cite: 6]
   if (tdsValue < 0.0) tdsValue = 0.0; 
 
-  // 3️⃣ Convert Turbidity Data & Hardware Fault Intercept
+  // 3️⃣ Convert Turbidity Data & Hardware Fault Intercept[cite: 6]
   float turbVoltage = turbidityRawAvg * (3.3 / 4095.0); 
-  float turbidityNTU = 3000.0 - (turbVoltage * turbiditySlope);
+  float turbidityNTU = 3000.0 - (turbVoltage * turbiditySlope); //[cite: 6]
 
   bool hardwareFaultDetected = false;
 
-  if (turbVoltage <= 0.05 || turbidityNTU >= 2900.0) {
+  if (turbVoltage <= 0.05 || turbidityNTU >= 2900.0) { //[cite: 6]
     hardwareFaultDetected = true;
     Serial.println("\n⚠️ [FAULT DETECTED] Turbidity module signal loss or power failure.");
-    Serial.println("🔄 Activating Edge Abstraction Layer for cloud continuity...");
+    Serial.println("🔄 Activating Edge Abstraction Layer for cloud continuity..."); //[cite: 6]
     
     float microVariance = (random(-12, 12) / 10.0); 
-    turbidityNTU = 3.3 + microVariance; 
+    turbidityNTU = 3.3 + microVariance; // Synthetic baseline substitution[cite: 6]
   }
 
   if (turbidityNTU < 0.0) turbidityNTU = 0.0;
 
-  // 4️⃣ Convert pH Data          
+  // 4️⃣ Convert pH Data[cite: 6]
   float espPinVoltage = phRawAvg * (3.3 / 4095.0);   
-  float phVoltage = espPinVoltage * 1.47;
-  float calculatedpH = neutralpH + ((phVoltage - neutralVoltage) * phSlope);
+  float phVoltage = espPinVoltage * 1.47; // Undo hardware 1.47x attenuation factor[cite: 6]
+  float calculatedpH = neutralpH + ((phVoltage - neutralVoltage) * phSlope); //[cite: 6]
   if (calculatedpH < 0.0) calculatedpH = 0.0;
   if (calculatedpH > 14.0) calculatedpH = 14.0;
 
-  // 5️⃣ Algorithmic Classification Matrix (Worst-Parameter Rule)
+  // 5️⃣ Algorithmic Classification Matrix (Worst-Parameter Rule)[cite: 6]
   String appStatus = "UNSAFE";
-  if (calculatedpH >= 6.5 && calculatedpH <= 8.5 && tdsValue <= 300.0 && turbidityNTU <= 5.0) {
+  if (calculatedpH >= 6.5 && calculatedpH <= 8.5 && tdsValue <= 300.0 && turbidityNTU <= 5.0) { //[cite: 6]
     appStatus = "SAFE";
-  } else if (calculatedpH >= 6.5 && calculatedpH <= 8.5 && tdsValue <= 500.0 && turbidityNTU <= 25.0) {
+  } else if (calculatedpH >= 6.5 && calculatedpH <= 8.5 && tdsValue <= 500.0 && turbidityNTU <= 25.0) { //[cite: 6]
     appStatus = "CAUTION";
-  } else if (calculatedpH >= 6.0 && calculatedpH <= 9.0 && tdsValue <= 1000.0 && turbidityNTU <= 100.0) {
+  } else if (calculatedpH >= 6.0 && calculatedpH <= 9.0 && tdsValue <= 1000.0 && turbidityNTU <= 100.0) { //[cite: 6]
     appStatus = "LIMITED USE";
   }
 
   bool isCriticalExcursion = (appStatus == "UNSAFE");
 
   // Print Local Diagnostic Summary
-  Serial.println("\n📊 === TELEMETRY UPDATE ===");
-  Serial.print(" Device Identifier : "); Serial.println(uniqueDeviceId);
-  Serial.print(" Temperature (°C)  : "); Serial.println(tempAvg, 1);
-  Serial.print(" Total Dissolved   : "); Serial.print((int)tdsValue); Serial.println(" PPM");
-  Serial.print(" Turbidity Value   : "); Serial.print(turbidityNTU, 1); Serial.println(" NTU");
-  Serial.print(" Calculated pH     : "); Serial.println(calculatedpH, 2);
-  Serial.print(" CLASSIFICATION    : "); Serial.println(appStatus);
-  Serial.print(" HARDWARE FAULT    : "); Serial.println(hardwareFaultDetected ? "YES" : "NO");
-  Serial.println("===========================\n");
+  Serial.println("\n📊 === VOLTAGE & TELEMETRY DIAGNOSTICS ===");
+  Serial.print(" Device Identifier   : "); Serial.println(uniqueDeviceId);
+  Serial.println(" -----------------------------------------");
+  Serial.print(" pH ESP32 Pin Volts  : "); Serial.print(espPinVoltage, 3); Serial.println(" V");
+  Serial.print(" pH Module Volts (Po): "); Serial.print(phVoltage, 3); Serial.println(" V  <-- Set neutralVoltage to this!");
+  Serial.print(" TDS Sensor Volts    : "); Serial.print(tdsVoltage, 3); Serial.println(" V");
+  Serial.print(" Turbidity Volts     : "); Serial.print(turbVoltage, 3); Serial.println(" V");
+  Serial.println(" -----------------------------------------");
+  Serial.print(" Temperature (°C)    : "); Serial.println(tempAvg, 1);
+  Serial.print(" Total Dissolved     : "); Serial.print((int)tdsValue); Serial.println(" PPM");
+  Serial.print(" Turbidity Value     : "); Serial.print(turbidityNTU, 1); Serial.println(" NTU");
+  Serial.print(" Calculated pH       : "); Serial.println(calculatedpH, 2);
+  Serial.print(" CLASSIFICATION      : "); Serial.println(appStatus);
+  Serial.println("=========================================\n");
 
-  // 7️⃣ Cloud Telemetry Sync via Wi-Fi (Attempt first; GSM is fallback only if Wi-Fi is unavailable)
+  // 6️⃣ Cloud Telemetry Sync via Wi-Fi (Attempt first; GSM is fallback only if Wi-Fi is unavailable)[cite: 6]
   connectToWiFi();
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -270,7 +276,7 @@ void loop() {
   } else {
     Serial.println("⚠️ Skipping POST request: No active Wi-Fi connection.");
 
-    // 6️⃣ Smart Burst & State-Reset GSM Alert Engine (fallback only when Wi-Fi is unavailable)
+    // 7️⃣ Smart Burst & State-Reset GSM Alert Engine (fallback only when Wi-Fi is unavailable)[cite: 6]
     bool pendingFaultAlert = hardwareFaultDetected && !faultAlertSent;
     bool pendingWaterAlert = isCriticalExcursion && 
                              (unsafeSmsCount < MAX_UNSAFE_BURST) && 

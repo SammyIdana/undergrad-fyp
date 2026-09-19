@@ -29,7 +29,7 @@ class NotificationManager {
     'system_warnings',
     'System Warnings',
     description: 'System notifications and warning messages',
-    importance: Importance.defaultImportance,
+    importance: Importance.high,
     playSound: true,
     enableLights: true,
   );
@@ -90,6 +90,10 @@ class NotificationManager {
   }
 
   Future<void> _requestPermissions() async {
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+
     final settings = await _firebaseMessaging.requestPermission(
       alert: true,
       announcement: false,
@@ -100,6 +104,47 @@ class NotificationManager {
       sound: true,
     );
     debugPrint('Notification permission status: ${settings.authorizationStatus}');
+  }
+
+  Future<void> showQualityStateChange({
+    required String previousStatus,
+    required String status,
+    required String deviceId,
+  }) async {
+    if (previousStatus == status || status == 'WAITING') return;
+
+    final isSafe = status == 'SAFE';
+    final title = isSafe
+        ? 'Water Quality Recovered'
+        : 'Water Quality Changed: $status';
+    final body = isSafe
+        ? 'Water quality for $deviceId has returned to safe levels.'
+        : 'Water quality for $deviceId changed from $previousStatus to $status.';
+
+    await _localNotifications.show(
+      id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          systemChannel.id,
+          systemChannel.name,
+          channelDescription: systemChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: true,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+        ),
+      ),
+      payload: json.encode({
+        'deviceId': deviceId,
+        'status': status,
+      }),
+    );
   }
 
   Future<void> _registerFCMToken() async {

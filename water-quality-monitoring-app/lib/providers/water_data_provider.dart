@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/water_data.dart';
+import '../services/notification_manager.dart';
 
 import '../utils/constants.dart';
 
@@ -15,6 +16,7 @@ final Uri _apiEndpointUri = Uri.parse(apiEndpoint);
 final waterDataProvider = StreamProvider<WaterData>((ref) async* {
   bool isAlive = true;
   bool hasYieldedData = false;
+  String? previousStatus;
   ref.onDispose(() => isAlive = false);
 
   try {
@@ -24,7 +26,16 @@ final waterDataProvider = StreamProvider<WaterData>((ref) async* {
 
         if (response.statusCode == 200) {
           final Map<String, dynamic> rawJson = json.decode(response.body);
-          yield WaterData.fromJson(rawJson);
+          final data = WaterData.fromJson(rawJson);
+          if (previousStatus != null && previousStatus != data.status) {
+            unawaited(NotificationManager.instance.showQualityStateChange(
+              previousStatus: previousStatus,
+              status: data.status,
+              deviceId: data.deviceId,
+            ));
+          }
+          previousStatus = data.status;
+          yield data;
           hasYieldedData = true;
         } else if (response.statusCode == 404) {
           final waitingData = WaterData(
