@@ -9,7 +9,8 @@ class AppHelpers {
       case 'SAFE': return AppColors.safe;
       case 'CAUTION': return AppColors.caution;
       case 'LIMITED USE': return AppColors.limitedUse;
-      case 'DANGEROUS': return AppColors.dangerous;
+      case 'DANGEROUS':
+      case 'UNSAFE': return AppColors.dangerous;
       default: return AppColors.textSecondary;
     }
   }
@@ -19,7 +20,8 @@ class AppHelpers {
       case 'SAFE': return AppColors.safeLight;
       case 'CAUTION': return AppColors.cautionLight;
       case 'LIMITED USE': return AppColors.limitedUseLight;
-      case 'DANGEROUS': return AppColors.dangerousLight;
+      case 'DANGEROUS':
+      case 'UNSAFE': return AppColors.dangerousLight;
       default: return AppColors.textSecondary;
     }
   }
@@ -30,7 +32,8 @@ class AppHelpers {
         case 'SAFE': return AppColorsDark.safe;
         case 'CAUTION': return AppColorsDark.caution;
         case 'LIMITED USE': return AppColorsDark.limitedUse;
-        case 'DANGEROUS': return AppColorsDark.dangerous;
+        case 'DANGEROUS':
+        case 'UNSAFE': return AppColorsDark.dangerous;
         default: return AppColorsDark.textSecondary;
       }
     }
@@ -43,7 +46,8 @@ class AppHelpers {
         case 'SAFE': return AppColorsDark.safeLight;
         case 'CAUTION': return AppColorsDark.cautionLight;
         case 'LIMITED USE': return AppColorsDark.limitedUseLight;
-        case 'DANGEROUS': return AppColorsDark.dangerousLight;
+        case 'DANGEROUS':
+        case 'UNSAFE': return AppColorsDark.dangerousLight;
         default: return AppColorsDark.textSecondary;
       }
     }
